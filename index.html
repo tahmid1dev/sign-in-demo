@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexora AI - Google Login Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 40px;
+    }
+    h1 {
+      color: #333;
+    }
+    .btn {
+      padding: 10px 20px;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 5px;
+      font-size: 16px;
+    }
+    .google-btn {
+      background: #4285F4;
+    }
+    .logout-btn {
+      background: #DB4437;
+    }
+    #profile {
+      margin-top: 20px;
+      display: none;
+    }
+    #profile img {
+      border-radius: 50%;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Welcome to Nexora AI</h1>
+  <p id="status">Not logged in.</p>
+
+  <button class="btn google-btn" onclick="googleLogin()">Sign in with Google</button>
+  <button class="btn logout-btn" onclick="googleLogout()">Logout</button>
+
+  <div id="profile">
+    <img id="user-pic" src="" width="100" height="100"><br>
+    <h2 id="user-name"></h2>
+    <p id="user-email"></p>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } 
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+    // Your Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEJcoBHBxl2UY-1eFURduX3h5M2bAP-Gc",
+      authDomain: "nexora-ai-cabb7.firebaseapp.com",
+      projectId: "nexora-ai-cabb7",
+      storageBucket: "nexora-ai-cabb7.firebasestorage.app",
+      messagingSenderId: "709302061659",
+      appId: "1:709302061659:web:ddab826758da672ded4d7e"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    // Login
+    window.googleLogin = function() {
+      signInWithPopup(auth, provider)
+        .then((result) => {
+          const user = result.user;
+          document.getElementById("status").innerText = "✅ Logged in!";
+          document.getElementById("profile").style.display = "block";
+          document.getElementById("user-pic").src = user.photoURL;
+          document.getElementById("user-name").innerText = user.displayName;
+          document.getElementById("user-email").innerText = user.email;
+        })
+        .catch((error) => {
+          alert("Login failed: " + error.message);
+          console.error(error);
+        });
+    };
+
+    // Logout
+    window.googleLogout = function() {
+      signOut(auth).then(() => {
+        document.getElementById("status").innerText = "Not logged in.";
+        document.getElementById("profile").style.display = "none";
+      });
+    };
+
+    // Auto-detect login
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById("status").innerText = "✅ Logged in!";
+        document.getElementById("profile").style.display = "block";
+        document.getElementById("user-pic").src = user.photoURL;
+        document.getElementById("user-name").innerText = user.displayName;
+        document.getElementById("user-email").innerText = user.email;
+      } else {
+        document.getElementById("status").innerText = "Not logged in.";
+        document.getElementById("profile").style.display = "none";
+      }
+    });
+  </script>
+</body>
+    </html>
