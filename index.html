@@ -3,41 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nexora AI - Google Login Demo</title>
+  <title>Nexora AI - User Data Save</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f9f9f9;
-      margin: 0;
-      padding: 40px;
-    }
-    h1 {
-      color: #333;
-    }
-    .btn {
-      padding: 10px 20px;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      margin: 5px;
-      font-size: 16px;
-    }
-    .google-btn {
-      background: #4285F4;
-    }
-    .logout-btn {
-      background: #DB4437;
-    }
-    #profile {
-      margin-top: 20px;
-      display: none;
-    }
-    #profile img {
-      border-radius: 50%;
-      margin-bottom: 10px;
-    }
+    body { font-family: Arial, sans-serif; text-align: center; padding: 40px; }
+    .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; margin: 5px; font-size: 16px; }
+    .google-btn { background: #4285F4; color: white; }
+    .logout-btn { background: #DB4437; color: white; }
+    #profile { display: none; margin-top: 20px; }
+    #profile img { border-radius: 50%; }
   </style>
 </head>
 <body>
@@ -52,15 +25,18 @@
     <img id="user-pic" src="" width="100" height="100"><br>
     <h2 id="user-name"></h2>
     <p id="user-email"></p>
+    <p><b>Last Login:</b> <span id="last-login"></span></p>
   </div>
 
-  <!-- Firebase SDK -->
   <script type="module">
+    // Import Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } 
       from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } 
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    // Your Firebase Config
+    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyCEJcoBHBxl2UY-1eFURduX3h5M2bAP-Gc",
       authDomain: "nexora-ai-cabb7.firebaseapp.com",
@@ -70,27 +46,47 @@
       appId: "1:709302061659:web:ddab826758da672ded4d7e"
     };
 
-    // Initialize Firebase
+    // Init Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
+    const db = getFirestore(app);
 
-    // Login
-    window.googleLogin = function() {
-      signInWithPopup(auth, provider)
-        .then((result) => {
-          const user = result.user;
-          document.getElementById("status").innerText = "✅ Logged in!";
-          document.getElementById("profile").style.display = "block";
-          document.getElementById("user-pic").src = user.photoURL;
-          document.getElementById("user-name").innerText = user.displayName;
-          document.getElementById("user-email").innerText = user.email;
-        })
-        .catch((error) => {
-          alert("Login failed: " + error.message);
-          console.error(error);
-        });
+    // Google Login
+    window.googleLogin = async function() {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        // Save data under users/{uid}
+        await setDoc(doc(db, "users", user.uid), {
+          name: user.displayName,
+          email: user.email,
+          photo: user.photoURL,
+          lastLogin: new Date().toISOString()
+        }, { merge: true }); // merge keeps old data
+
+        loadUser(user.uid);
+      } catch (err) {
+        alert("Login failed: " + err.message);
+        console.error(err);
+      }
     };
+
+    // Load User Data
+    async function loadUser(uid) {
+      const docRef = doc(db, "users", uid);
+      const snapshot = await getDoc(docRef);
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        document.getElementById("status").innerText = "✅ Logged in!";
+        document.getElementById("profile").style.display = "block";
+        document.getElementById("user-pic").src = data.photo;
+        document.getElementById("user-name").innerText = data.name;
+        document.getElementById("user-email").innerText = data.email;
+        document.getElementById("last-login").innerText = data.lastLogin;
+      }
+    }
 
     // Logout
     window.googleLogout = function() {
@@ -100,19 +96,10 @@
       });
     };
 
-    // Auto-detect login
+    // Auto-login
     onAuthStateChanged(auth, (user) => {
-      if (user) {
-        document.getElementById("status").innerText = "✅ Logged in!";
-        document.getElementById("profile").style.display = "block";
-        document.getElementById("user-pic").src = user.photoURL;
-        document.getElementById("user-name").innerText = user.displayName;
-        document.getElementById("user-email").innerText = user.email;
-      } else {
-        document.getElementById("status").innerText = "Not logged in.";
-        document.getElementById("profile").style.display = "none";
-      }
+      if (user) loadUser(user.uid);
     });
   </script>
 </body>
-    </html>
+</html>
